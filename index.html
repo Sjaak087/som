@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="nl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#070a17">
+  <title>Aurora Student Dashboard</title>
+  <meta name="description" content="Donker glassmorphism student dashboard met Somtoday-agenda import in de browser.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" aria-label="Hoofdnavigatie">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true"><span></span><span></span></div>
+        <div class="brand-name">student<span>hub</span></div>
+      </div>
+
+      <div class="profile-mini">
+        <div class="avatar">JD</div>
+        <div class="profile-copy">
+          <strong id="profileName">Jouw Naam</strong>
+          <span>Leerling</span>
+        </div>
+      </div>
+
+      <nav class="side-nav">
+        <button class="nav-item active" data-section="home">
+          <span class="nav-icon">⌂</span><span>Home</span>
+        </button>
+        <button class="nav-item" data-section="agenda">
+          <span class="nav-icon">▣</span><span>Agenda</span>
+        </button>
+        <button class="nav-item" data-section="grades">
+          <span class="nav-icon">◩</span><span>Cijfers</span>
+        </button>
+        <button class="nav-item" data-section="tasks">
+          <span class="nav-icon">✓</span><span>Taken</span>
+        </button>
+        <button class="nav-item" data-section="messages">
+          <span class="nav-icon">✉</span><span>Berichten</span>
+          <span class="nav-badge">2</span>
+        </button>
+        <button class="nav-item" data-section="documents">
+          <span class="nav-icon">▤</span><span>Documenten</span>
+        </button>
+      </nav>
+
+      <div class="sidebar-bottom">
+        <button class="nav-item" id="settingsBtn">
+          <span class="nav-icon">⚙</span><span>Instellingen</span>
+        </button>
+        <div class="side-quote">
+          <span>Better days</span>
+          <span>ahead.</span>
+          <b>◡</b>
+        </div>
+      </div>
+    </aside>
+
+    <section class="content">
+      <header class="topbar">
+        <div class="mobile-menu-wrap">
+          <button id="mobileMenu" class="icon-btn" aria-label="Menu">☰</button>
+        </div>
+        <div class="search-box">
+          <span>⌕</span>
+          <input id="globalSearch" type="search" placeholder="Zoek in je dashboard…">
+        </div>
+        <div class="top-actions">
+          <button class="icon-btn" id="alertsBtn" title="Meldingen">♧<i></i></button>
+          <button class="icon-btn" id="themeHint" title="Thema">☾</button>
+          <button class="user-chip" id="profileBtn">
+            <span class="avatar small">JD</span>
+            <span>Jouw Naam</span>
+            <b>⌄</b>
+          </button>
+        </div>
+      </header>
+
+      <main>
+        <section class="hero" id="homeSection">
+          <div class="hero-copy">
+            <div class="eyebrow">AURORA / STUDENT DASHBOARD</div>
+            <h1>Goedemorgen, <span>Jouw Naam</span>.</h1>
+            <p>Tijd om vandaag het beste uit jezelf te halen. <span>💪</span></p>
+          </div>
+          <div class="hero-date">
+            <span class="hero-date-label">Vandaag</span>
+            <strong id="heroDate">—</strong>
+          </div>
+          <div class="hero-orb orb-a"></div>
+          <div class="hero-orb orb-b"></div>
+          <div class="mountain-lines" aria-hidden="true"></div>
+        </section>
+
+        <section class="quick-settings glass">
+          <div class="quick-copy">
+            <span class="eyebrow">AGENDA CONNECTIE</span>
+            <strong>Voer je agenda-ID of iCalendar-token in</strong>
+            <small>Alles blijft in deze browser: er is geen database of serveropslag.</small>
+          </div>
+          <div class="quick-form">
+            <input id="agendaInput" placeholder="Agenda-ID of iCalendar-URL">
+            <button id="loadAgenda" class="primary">Laad agenda</button>
+            <label class="file-btn">
+              <input id="icsFile" type="file" accept=".ics,text/calendar">
+              .ics openen
+            </label>
+          </div>
+          <div id="connectionStatus" class="status neutral">Nog geen agenda geladen</div>
+        </section>
+
+        <section class="dashboard-grid" id="dashboard">
+          <article class="panel agenda-panel" id="agendaPanel">
+            <div class="panel-head">
+              <div>
+                <span class="panel-kicker">VANDAAG</span>
+                <h2>Agenda</h2>
+              </div>
+              <div class="panel-head-actions">
+                <button class="ghost" id="prevWeek">←</button>
+                <button class="week-label" id="weekLabel">Week —</button>
+                <button class="ghost" id="nextWeek">→</button>
+              </div>
+            </div>
+            <div class="calendar-shell">
+              <div class="calendar-top">
+                <strong id="monthLabel">—</strong>
+                <span id="rangeLabel">—</span>
+              </div>
+              <div class="week-grid">
+                <div class="time-col" id="timeAxis"></div>
+                <div class="days-grid" id="daysGrid"></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel grades-panel" id="gradesPanel">
+            <div class="panel-head">
+              <div>
+                <span class="panel-kicker">OVERZICHT</span>
+                <h2>Laatste cijfers</h2>
+              </div>
+              <button class="link-btn" data-section="grades">Bekijk alle cijfers →</button>
+            </div>
+            <div class="grades-list" id="gradesList"></div>
+          </article>
+
+          <article class="panel news-panel">
+            <div class="panel-head">
+              <div>
+                <span class="panel-kicker">SCHOOL</span>
+                <h2>Nieuws</h2>
+              </div>
+              <button class="link-btn">Bekijk alles →</button>
+            </div>
+            <div class="news-list">
+              <div class="news-card featured">
+                <div class="news-thumb gradient-one"></div>
+                <div>
+                  <div class="news-meta">Vandaag</div>
+                  <h3>Schoolnieuws</h3>
+                  <p>Updates, activiteiten en belangrijke mededelingen op één plek.</p>
+                  <span>Lees bericht →</span>
+                </div>
+              </div>
+              <div class="news-card">
+                <div class="news-thumb gradient-two"></div>
+                <div>
+                  <div class="news-meta">Deze week</div>
+                  <h3>Nieuwe schoolregels</h3>
+                  <p>Bekijk de laatste afspraken en praktische informatie.</p>
+                </div>
+              </div>
+            </div>
+          </article>
+
+          <article class="panel tasks-panel" id="tasksPanel">
+            <div class="panel-head">
+              <div>
+                <span class="panel-kicker">PLANNING</span>
+                <h2>Taken</h2>
+              </div>
+              <button class="link-btn" data-section="tasks">Bekijk alle taken →</button>
+            </div>
+            <div class="task-list">
+              <div class="task-row"><span class="task-dot"></span><div><strong>Boekverslag inleveren</strong><small>Nederlands</small></div><time>Vandaag</time></div>
+              <div class="task-row"><span class="task-dot purple"></span><div><strong>Oefentoets hoofdstuk 4</strong><small>Wiskunde</small></div><time>Dinsdag</time></div>
+              <div class="task-row"><span class="task-dot pink"></span><div><strong>Engelse woordjes leren</strong><small>Engels</small></div><time>Woensdag</time></div>
+              <div class="task-row"><span class="task-dot green"></span><div><strong>Werkstuk biologie</strong><small>Biologie</small></div><time>Vrijdag</time></div>
+            </div>
+          </article>
+
+          <article class="panel quote-panel">
+            <div class="quote-art"></div>
+            <div class="quote-text">“Kleine stappen brengen je ook naar grote doelen.”</div>
+            <div class="quote-mark">↗</div>
+          </article>
+
+          <article class="panel messages-panel" id="messagesPanel">
+            <div class="panel-head">
+              <div>
+                <span class="panel-kicker">INBOX</span>
+                <h2>Berichten</h2>
+              </div>
+              <button class="link-btn" data-section="messages">Bekijk alles →</button>
+            </div>
+            <div class="message-list">
+              <div class="message-row"><span class="message-avatar blue">NL</span><div><strong>Docent Nederlands</strong><small>De volgende toets gaat over…</small></div><time>10:24</time><i></i></div>
+              <div class="message-row"><span class="message-avatar cyan">M</span><div><strong>Mentor</strong><small>Let op: ouderavond volgende week.</small></div><time>08:17</time><i></i></div>
+            </div>
+          </article>
+
+          <article class="panel clock-panel">
+            <div class="panel-head">
+              <div>
+                <span class="panel-kicker">LOKAAL</span>
+                <h2>Tijd</h2>
+              </div>
+            </div>
+            <div class="digital-clock" id="digitalClock">--:--</div>
+            <div class="clock-date" id="clockDate">—</div>
+            <div class="clock-ring"><span></span></div>
+          </article>
+        </section>
+      </main>
+    </section>
+  </div>
+
+  <dialog id="settingsDialog" class="modal">
+    <form method="dialog" class="modal-card">
+      <button class="modal-close" value="close" aria-label="Sluiten">×</button>
+      <span class="eyebrow">INSTELLINGEN</span>
+      <h2>Dashboard</h2>
+      <label>Naam
+        <input id="nameInput" value="Jouw Naam" maxlength="40">
+      </label>
+      <label>Accent
+        <select id="accentInput">
+          <option value="violet">Aurora Violet</option>
+          <option value="cyan">Cyber Cyan</option>
+          <option value="pink">Neon Pink</option>
+          <option value="green">Mint Green</option>
+        </select>
+      </label>
+      <div class="modal-actions">
+        <button value="close" class="ghost">Sluiten</button>
+        <button id="applySettings" class="primary" value="default">Toepassen</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script src="app.js"></script>
+</body>
+</html>

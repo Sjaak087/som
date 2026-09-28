@@ -1,0 +1,2 @@
+This project is an independent student-dashboard UI.
+It is not affiliated with, endorsed by, or sponsored by Somtoday/Topicus.
