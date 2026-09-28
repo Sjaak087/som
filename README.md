@@ -1,59 +1,76 @@
-# Aurora Student Dashboard — GitHub-ready
+# Aurora Student Dashboard v2
 
-Een zelfstandige, statische student-dashboard UI met een preview-achtige donkere
-glassmorphism indeling.
+GitHub-ready, static dashboard geïnspireerd op de aangeleverde preview.
 
-## Belangrijk over je "agenda ID"
+## Wat deze versie doet
 
-Somtoday gebruikt voor de iCalendar-koppeling een iCalendar-token/URL. De officiële
-Somtoday-help beschrijft dat leerlingen vanuit **Instellingen → Agenda** een
-agenda-koppeling kunnen activeren. De API-documentatie beschrijft daarnaast een
-`GET /rest/v1/icalendar` endpoint dat een `leerlingICalendarLink` teruggeeft en een
-stream onder `/rest/v1/icalendar/stream/...`.
+### 1. Somtoday → alleen rooster
+De import accepteert een volledige iCalendar-token/URL uit Somtoday of een `.ics`
+bestand.
 
-Daarom accepteert deze site:
-- een volledige `https://...` iCalendar-URL/token
-- een losse token/ID, waarna de app de Somtoday-streamvorm probeert
+De site leest uitsluitend `VEVENT` agenda-items uit de feed. Cijfers, taken,
+toetsen en berichten worden niet uit de Somtoday-feed gehaald.
 
-### Browser-only / geen opslag
+Somtoday beschrijft dat de iCalendar-koppeling alleen roosterafspraken
+synchroniseert. Huiswerk en toetsen uit Somtoday worden niet meegenomen in die
+externe agenda-koppeling.
 
-Er is:
+### 2. Zelf cijfers invoeren
+Met **+ Cijfer** kun je vak, cijfer, datum en type invoeren.
+
+Het dashboard toont:
+- gemiddelde
+- aantal cijfers
+- per cijfer een status "Goed" of "Aandacht"
+- laatste cijfers
+
+### 3. Zelf taken plannen
+Met **+ Taak** kun je titel, vak, datum, tijd en prioriteit instellen.
+Taken verschijnen:
+- in het takenpaneel
+- op de agenda
+- in de dagteller
+
+Taken kunnen worden afgevinkt.
+
+### 4. Zelf toetsen plannen
+Met **+ Toets** kun je vak/titel, datum, tijd en lokaal instellen.
+Toetsen verschijnen:
+- in het toets-paneel
+- als volgende toets
+- in de agenda
+
+### 5. Geen backend / geen database
+Alles is een gewone GitHub Pages-site:
+- geen server
 - geen database
-- geen backend
+- geen API-server
 - geen localStorage
-- geen cookie-opslag voor de agenda
-- geen server-side proxy
+- geen cookies voor opslag
 
-De agenda wordt alleen in JavaScript-geheugen verwerkt. Een browser kan een
-Somtoday-stream echter blokkeren door CORS. Wanneer dat gebeurt, kun je in
-Somtoday/een externe agenda een `.ics` bestand verkrijgen en dat lokaal met
-`.ics openen` in de site laden.
+De handmatig ingevoerde cijfers/taken/toetsen bestaan alleen zolang de pagina
+open blijft. Na Ctrl+F5 zijn ze weer weg.
 
 ## GitHub Pages
 
-1. Maak een nieuwe GitHub repository.
-2. Zet `index.html`, `styles.css` en `app.js` in de root.
-3. Push naar GitHub.
-4. Open **Settings → Pages**.
-5. Kies de branch met de root als bron.
+Upload deze bestanden naar de root van een GitHub repository:
 
-Omdat het project alleen HTML/CSS/JS bevat, werkt het rechtstreeks op GitHub Pages.
+- `index.html`
+- `styles.css`
+- `app.js`
+- `.github/workflows/pages.yml`
 
-## Wat de site doet
+Ga daarna naar **Settings → Pages** en activeer GitHub Pages.
 
-- preview-achtige glass sidebar
-- donker neon topbar
-- hero met datum
-- 12-koloms dashboard
-- agenda in een grote werkruimte
-- cijfers, taken, nieuws, berichten en klok
-- week vooruit/achteruit
-- zoeken binnen de dashboardkaarten
-- lokale `.ics` import
-- agenda URL/token import
-- instellingen voor naam en accentkleur
+## CORS
 
-## Data
+Een browser kan een iCalendar URL blokkeren wanneer die server geen CORS-header
+voor browser requests terugstuurt. Dat is een beveiligingsmechanisme van de
+browser en niet iets dat met CSS/HTML kan worden omzeild.
 
-De demo toont fictieve/voorbeeldgegevens totdat je een agenda importeert.
-De `.ics` import bevat alleen agenda-items die in het bestand/feed staan.
+Gebruik dan de `.ics openen` knop.
+
+## Onafhankelijk project
+
+Deze interface is een zelfstandige dashboard-implementatie en is niet verbonden
+aan of gesponsord door Somtoday/Topicus.

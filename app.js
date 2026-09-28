@@ -1,270 +1,286 @@
-const state = {
-  weekOffset: 0,
-  events: [],
-  loaded: false
+const state={
+  roster:[],
+  grades:[],
+  tasks:[],
+  tests:[],
+  weekOffset:0,
+  rosterSource:"DEMO"
 };
 
-const demoEvents = [
-  {day:0,start:"08:30",end:"09:20",title:"Nederlands",location:"Lokaal 102",type:""},
-  {day:0,start:"09:30",end:"10:20",title:"Wiskunde",location:"Lokaal 205",type:""},
-  {day:1,start:"09:20",end:"10:10",title:"Engels",location:"Lokaal 103",type:""},
-  {day:1,start:"11:20",end:"12:10",title:"Biologie",location:"Lokaal 302",type:"practice"},
-  {day:2,start:"08:30",end:"09:20",title:"Latijn",location:"Lokaal 132",type:""},
-  {day:2,start:"09:20",end:"10:10",title:"Nederlands",location:"Lokaal 103",type:"test"},
-  {day:3,start:"09:20",end:"10:10",title:"Duits",location:"Lokaal 149",type:""},
-  {day:3,start:"10:10",end:"11:00",title:"Engels",location:"Lokaal 204",type:""},
-  {day:4,start:"09:20",end:"10:10",title:"Geschiedenis",location:"Lokaal 120",type:""},
-  {day:4,start:"10:10",end:"11:00",title:"Grieks",location:"Lokaal 131",type:""}
+const demoRoster=[
+  {date:isoDate(new Date()),start:"08:30",end:"09:20",title:"Nederlands",location:"Lokaal 102",kind:"roster"},
+  {date:isoDate(new Date()),start:"09:30",end:"10:20",title:"Wiskunde",location:"Lokaal 205",kind:"roster"},
+  {date:isoDate(addDays(new Date(),1)),start:"09:20",end:"10:10",title:"Engels",location:"Lokaal 103",kind:"roster"},
+  {date:isoDate(addDays(new Date(),2)),start:"08:30",end:"09:20",title:"Latijn",location:"Lokaal 132",kind:"roster"},
+  {date:isoDate(addDays(new Date(),2)),start:"09:20",end:"10:10",title:"Nederlands",location:"Lokaal 103",kind:"roster"},
+  {date:isoDate(addDays(new Date(),3)),start:"09:20",end:"10:10",title:"Duits",location:"Lokaal 149",kind:"roster"},
+  {date:isoDate(addDays(new Date(),4)),start:"09:20",end:"10:10",title:"Geschiedenis",location:"Lokaal 120",kind:"roster"}
 ];
 
-const grades = [
-  ["Nederlands","7,8","+0,2"],["Wiskunde","6,9","+0,3"],
-  ["Engels","8,5","+0,1"],["Biologie","7,2","0,0"],["Geschiedenis","8,0","+0,4"]
-];
+function $(id){return document.getElementById(id)}
+function pad(n){return String(n).padStart(2,"0")}
+function isoDate(d){return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`}
+function addDays(d,n){const x=new Date(d);x.setDate(x.getDate()+n);return x}
+function startOfWeek(d){const x=new Date(d);x.setHours(0,0,0,0);const day=x.getDay()||7;x.setDate(x.getDate()+1-day);return x}
+function mondayAtOffset(o){return addDays(startOfWeek(new Date()),o*7)}
+function minutes(t){const [h,m]=(t||"00:00").split(":").map(Number);return h*60+m}
+function escapeHtml(v){return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]))}
+function dutch(d,opts){return new Intl.DateTimeFormat("nl-NL",opts).format(d)}
 
-function $(id){ return document.getElementById(id); }
-
-function monday(d){
-  const x = new Date(d); x.setHours(0,0,0,0);
-  const day = x.getDay();
-  const diff = day === 0 ? -6 : 1 - day;
-  x.setDate(x.getDate()+diff);
-  return x;
+function setTodayFields(){
+  const now=new Date();
+  $("heroDate").textContent=dutch(now,{weekday:"long",day:"numeric",month:"long"});
+  $("clock").textContent=`${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  $("clockDate").textContent=dutch(now,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
 }
 
-function addDays(d,n){
-  const x = new Date(d); x.setDate(x.getDate()+n); return x;
-}
-
-function pad(n){ return String(n).padStart(2,"0"); }
-
-function formatDutchDate(d, opts={day:"numeric",month:"long"}){
-  return new Intl.DateTimeFormat("nl-NL",opts).format(d);
-}
-
-function weekNumber(d){
-  const x = new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
-  const day = x.getUTCDay() || 7;
-  x.setUTCDate(x.getUTCDate()+4-day);
-  const yearStart = new Date(Date.UTC(x.getUTCFullYear(),0,1));
-  return Math.ceil((((x-yearStart)/86400000)+1)/7);
-}
-
-function timeToMinutes(t){
-  const [h,m] = (t||"00:00").split(":").map(Number);
-  return h*60+m;
-}
-
-function renderClock(){
-  const now = new Date();
-  $("digitalClock").textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-  $("clockDate").textContent = formatDutchDate(now,{weekday:"long",day:"numeric",month:"long",year:"numeric"});
-  $("heroDate").textContent = formatDutchDate(now,{weekday:"long",day:"numeric",month:"long"});
-}
-
-function renderGrades(){
-  $("gradesList").innerHTML = grades.map((g,i)=>`
-    <div class="grade-row">
-      <div class="subject-icon">${["N","W","E","B","G"][i]}</div>
-      <div class="grade-copy"><strong>${g[0]}</strong><span>Laatste resultaat</span></div>
-      <div style="text-align:right"><div class="grade-value">${g[1]}</div><div class="grade-delta">${g[2]}</div></div>
-    </div>`).join("");
+function weekNo(d){
+  const x=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));
+  const day=x.getUTCDay()||7;x.setUTCDate(x.getUTCDate()+4-day);
+  const jan1=new Date(Date.UTC(x.getUTCFullYear(),0,1));
+  return Math.ceil((((x-jan1)/86400000)+1)/7)
 }
 
 function renderCalendar(){
-  const base = monday(addDays(new Date(), state.weekOffset*7));
-  const names = ["Ma","Di","Wo","Do","Vr"];
-  const longNames = ["Maandag","Dinsdag","Woensdag","Donderdag","Vrijdag"];
-  $("weekLabel").textContent = `Week ${weekNumber(base)}`;
-  $("monthLabel").textContent = formatDutchDate(base,{month:"long",year:"numeric"});
-  $("rangeLabel").textContent = `${formatDutchDate(base,{day:"numeric",month:"short"})} – ${formatDutchDate(addDays(base,4),{day:"numeric",month:"short"})}`;
+  const base=mondayAtOffset(state.weekOffset);
+  $("weekLabel").textContent=`Week ${weekNo(base)}`;
+  $("calendarMonth").textContent=dutch(base,{month:"long",year:"numeric"});
+  $("calendarRange").textContent=`${dutch(base,{day:"numeric",month:"short"})} – ${dutch(addDays(base,4),{day:"numeric",month:"short"})}`;
+  $("sourcePill").textContent=state.rosterSource;
 
-  const axis = [];
-  for(let h=6; h<=13; h++){
-    axis.push(`<span>${h}:00</span>`);
-  }
-  $("timeAxis").innerHTML = axis.join("");
+  $("timeAxis").innerHTML=Array.from({length:9},(_,i)=>`<span>${6+i}:00</span>`).join("");
+  const dayNames=["Ma","Di","Wo","Do","Vr"];
+  $("days").innerHTML=dayNames.map((name,i)=>{
+    const d=addDays(base,i), date=isoDate(d);
+    const items=[
+      ...state.roster.filter(x=>x.date===date).map(x=>({...x,kind:"roster"})),
+      ...state.tasks.filter(x=>x.date===date).map(x=>({...x,kind:"task"})),
+      ...state.tests.filter(x=>x.date===date).map(x=>({...x,kind:"test"}))
+    ].sort((a,b)=>minutes(a.start)-minutes(b.start));
+    const events=items.map(renderEvent).join("");
+    return `<div class="day">
+      <div class="day-header"><small>${name}</small><strong>${d.getDate()}</strong></div>
+      <div class="day-body">${events}</div>
+    </div>`
+  }).join("");
 
-  const now = new Date();
-  const cols = [];
-  for(let day=0; day<5; day++){
-    const d = addDays(base,day);
-    const iso = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
-    const events = state.events.filter(e=>e.date===iso || (typeof e.day==="number" && e.day===day));
-    const today = d.toDateString() === now.toDateString();
-    const eventsHtml = events.map(e=>{
-      const start = timeToMinutes(e.start || "08:00");
-      const end = timeToMinutes(e.end || "09:00");
-      const top = Math.max(0,(start-360)/60*60);
-      const height = Math.max(42,((end-start)/60)*60-4);
-      return `<div class="event ${e.type||""}" style="top:${top}px;height:${height}px">
-        <div class="event-title">${escapeHtml(e.title||"Afspraak")}</div>
-        <div class="event-time">${escapeHtml(e.start||"")} ${e.type==="test"?"• Toets":""}</div>
-        ${e.location?`<div class="event-location">${escapeHtml(e.location)}</div>`:""}
+  renderStats();
+}
+
+function renderEvent(e){
+  const start=minutes(e.start||"08:00"),end=minutes(e.end||"09:00");
+  const top=Math.max(0,(start-360)); // 1 minute == 1 px; 6:00 is origin
+  const height=Math.max(42,end-start-5);
+  let tag="";
+  if(e.kind==="task") tag='<span class="tag">TAak</span>';
+  if(e.kind==="test") tag='<span class="tag">TOETS</span>';
+  return `<div class="event ${e.kind}" style="top:${top}px;height:${height}px">
+    <div class="title">${escapeHtml(e.title||"Afspraak")}</div>
+    <div class="time">${escapeHtml(e.start||"")}</div>
+    ${e.location?`<div class="place">${escapeHtml(e.location)}</div>`:""}
+    ${tag}
+  </div>`;
+}
+
+function renderGrades(){
+  const list=$("gradesList");
+  if(!state.grades.length){
+    list.innerHTML=`<div class="empty">Nog geen eigen cijfers. Klik op <b>+ Cijfer</b>.</div>`;
+  }else{
+    list.innerHTML=state.grades.slice().sort((a,b)=>new Date(b.date)-new Date(a.date)).map((g,i)=>{
+      const n=Number(g.value);
+      const warn=n<5.5;
+      const status=warn?"Aandacht":"Goed";
+      return `<div class="grade-row">
+        <div class="grade-icon">${escapeHtml((g.subject||"?")[0].toUpperCase())}</div>
+        <div class="grade-copy"><strong>${escapeHtml(g.subject)}</strong><small>${escapeHtml(g.type)} · ${escapeHtml(g.date)}</small></div>
+        <div class="grade-right"><div class="grade-value">${n.toFixed(1).replace(".",",")}</div><div class="grade-state ${warn?"warn":""}">${status}</div></div>
       </div>`;
     }).join("");
-    cols.push(`<div class="day-column">
-      <div class="day-head ${today?"today":""}"><span class="day-name">${names[day]} · ${longNames[day]}</span><strong>${d.getDate()}</strong></div>
-      <div class="day-column-body">${eventsHtml}</div>
-    </div>`);
   }
-  $("daysGrid").innerHTML = cols.join("");
+  const avg=state.grades.length?state.grades.reduce((s,g)=>s+Number(g.value),0)/state.grades.length:NaN;
+  $("avgGrade").textContent=Number.isFinite(avg)?avg.toFixed(2).replace(".",","):"—";
+  $("gradeSummary").textContent=`${state.grades.length} ${state.grades.length===1?"cijfer":"cijfers"}`;
+  $("gradesCount").textContent=state.grades.length;
 }
 
-function escapeHtml(v){
-  return String(v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function renderTasks(){
+  if(!state.tasks.length) $("tasksList").innerHTML=`<div class="empty">Nog geen taken. Klik op <b>+ Taak</b>.</div>`;
+  else $("tasksList").innerHTML=state.tasks.slice().sort((a,b)=>`${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`)).map((t,i)=>`
+    <div class="task-row ${t.done?"done":""} ${t.priority==="Hoog"?"priority-high":""}">
+      <span class="task-check ${t.done?"done":""}" data-task="${i}"></span>
+      <div class="task-copy"><strong>${escapeHtml(t.title)}</strong><small>${escapeHtml(t.subject||"Eigen taak")} · ${escapeHtml(t.date)}</small></div>
+      <time>${escapeHtml(t.start||"")}</time>
+    </div>`).join("");
+  $("tasksCount").textContent=state.tasks.filter(t=>!t.done).length;
+  document.querySelectorAll("[data-task]").forEach(el=>el.addEventListener("click",()=>{
+    state.tasks[Number(el.dataset.task)].done=!state.tasks[Number(el.dataset.task)].done;
+    renderTasks();renderCalendar();
+  }));
 }
 
-function parseICS(text){
-  const unfolded = text.replace(/\r?\n[ \t]/g,"").split(/\r?\n/);
-  const items = [];
-  let current = null;
-  for(const raw of unfolded){
-    if(raw === "BEGIN:VEVENT"){ current={}; continue; }
-    if(raw === "END:VEVENT"){ if(current) items.push(current); current=null; continue; }
-    if(!current) continue;
-    const idx = raw.indexOf(":");
-    if(idx < 0) continue;
-    const key = raw.slice(0,idx);
-    const value = raw.slice(idx+1);
-    const mainKey = key.split(";")[0].toUpperCase();
-    if(mainKey==="SUMMARY") current.title=value;
-    if(mainKey==="LOCATION") current.location=value;
-    if(mainKey==="DESCRIPTION") current.description=value;
-    if(mainKey==="UID") current.uid=value;
-    if(mainKey==="DTSTART") current.dtstart=value;
-    if(mainKey==="DTEND") current.dtend=value;
-  }
+function renderTests(){
+  const upcoming=state.tests.slice().sort((a,b)=>`${a.date} ${a.start}`.localeCompare(`${b.date} ${b.start}`));
+  const next=upcoming.find(t=>new Date(`${t.date}T${t.start||"00:00"}`)>=new Date());
+  $("nextTest").innerHTML=next?`<small>VOLGENDE TOETS</small><strong>${escapeHtml(next.title)}</strong><span>${dutch(new Date(`${next.date}T12:00`),{weekday:"long",day:"numeric",month:"long"})} · ${escapeHtml(next.start||"")}</span>`:`<small>VOLGENDE TOETS</small><strong>Geen toetsen gepland</strong><span>Gebruik + Toets om er één toe te voegen.</span>`;
+  $("testsList").innerHTML=upcoming.length?upcoming.map(t=>`<div class="test-row"><span class="grade-icon">★</span><div class="test-copy"><strong>${escapeHtml(t.title)}</strong><small>${escapeHtml(t.date)} · ${escapeHtml(t.location||"Lokaal onbekend")}</small></div><time>${escapeHtml(t.start||"")}</time></div>`).join(""):`<div class="empty">Nog geen toetsen.</div>`;
+  $("testsCount").textContent=state.tests.length;
+}
 
-  return items.map(v=>{
-    const parsed = parseICSDate(v.dtstart);
-    const end = parseICSDate(v.dtend);
-    if(!parsed) return null;
-    return {
-      date:`${parsed.getFullYear()}-${pad(parsed.getMonth()+1)}-${pad(parsed.getDate())}`,
-      start:`${pad(parsed.getHours())}:${pad(parsed.getMinutes())}`,
-      end:end?`${pad(end.getHours())}:${pad(end.getMinutes())}`:"",
-      title:v.title || "Afspraak",
-      location:v.location || "",
-      type:(v.title||"").toLowerCase().includes("toets") ? "test" : ""
-    };
-  }).filter(Boolean);
+function renderStats(){
+  const today=isoDate(new Date());
+  $("todayLessons").textContent=state.roster.filter(x=>x.date===today).length;
+  $("todayTasks").textContent=state.tasks.filter(x=>x.date===today&&!x.done).length;
+  $("todayTests").textContent=state.tests.filter(x=>x.date===today).length;
+  const open=state.tasks.filter(x=>!x.done).length;
+  const tests=state.tests.length;
+  if(state.rosterSource==="DEMO") $("todayNotice").textContent="Dit zijn voorbeeldlessen. Gebruik je eigen iCalendar-token/URL om je echte rooster te laden.";
+  else if(tests) $("todayNotice").textContent=`Je hebt ${open} openstaande ${open===1?"taak":"taken"} en ${tests} geplande ${tests===1?"toets":"toetsen"}.`;
+  else $("todayNotice").textContent=`Rooster geladen. Je eigen taken en toetsen kun je hieronder toevoegen.`;
+}
+
+function renderAll(){renderCalendar();renderGrades();renderTasks();renderTests()}
+
+function showStatus(text,kind="neutral"){
+  $("rosterStatus").textContent=text;
+  $("rosterStatus").className=`connect-status ${kind}`;
 }
 
 function parseICSDate(v){
-  if(!v) return null;
-  const cleaned=v.replace(/Z$/,"");
-  if(/^\d{8}$/.test(cleaned)){
-    return new Date(Number(cleaned.slice(0,4)),Number(cleaned.slice(4,6))-1,Number(cleaned.slice(6,8)),0,0);
-  }
-  if(/^\d{8}T\d{6}$/.test(cleaned)){
-    return new Date(
-      Number(cleaned.slice(0,4)),Number(cleaned.slice(4,6))-1,Number(cleaned.slice(6,8)),
-      Number(cleaned.slice(9,11)),Number(cleaned.slice(11,13)),Number(cleaned.slice(13,15))
-    );
-  }
-  const d = new Date(v);
-  return Number.isNaN(d.getTime()) ? null : d;
+  if(!v)return null;
+  const raw=v.replace(/^.*:/,"").replace(/Z$/,"");
+  if(/^\d{8}$/.test(raw)) return new Date(Number(raw.slice(0,4)),Number(raw.slice(4,6))-1,Number(raw.slice(6,8)),0,0);
+  if(/^\d{8}T\d{6}$/.test(raw)) return new Date(Number(raw.slice(0,4)),Number(raw.slice(4,6))-1,Number(raw.slice(6,8)),Number(raw.slice(9,11)),Number(raw.slice(11,13)),Number(raw.slice(13,15)));
+  const d=new Date(raw);return Number.isNaN(d.getTime())?null:d;
 }
 
-function setStatus(message,kind="neutral"){
-  const el=$("connectionStatus");
-  el.textContent=message;
-  el.className=`status ${kind}`;
+function parseICS(text){
+  const lines=text.replace(/\r?\n[ \t]/g,"").split(/\r?\n/);
+  const out=[];let v=null;
+  for(const line of lines){
+    if(line==="BEGIN:VEVENT"){v={};continue}
+    if(line==="END:VEVENT"){if(v)out.push(v);v=null;continue}
+    if(!v)continue;
+    const idx=line.indexOf(":");if(idx<0)continue;
+    const key=line.slice(0,idx).split(";")[0].toUpperCase(),val=line.slice(idx+1);
+    if(key==="SUMMARY")v.title=val;
+    if(key==="LOCATION")v.location=val;
+    if(key==="DTSTART")v.startDate=val;
+    if(key==="DTEND")v.endDate=val;
+  }
+  return out.map(e=>{
+    const s=parseICSDate(e.startDate),en=parseICSDate(e.endDate);
+    if(!s)return null;
+    return {date:isoDate(s),start:`${pad(s.getHours())}:${pad(s.getMinutes())}`,end:en?`${pad(en.getHours())}:${pad(en.getMinutes())}`:"",title:e.title||"Afspraak",location:e.location||"",kind:"roster"};
+  }).filter(Boolean);
 }
 
-async function loadAgenda(){
-  const raw=$("agendaInput").value.trim();
-  if(!raw){ setStatus("Vul een agenda-ID of iCalendar-URL in.","error"); return; }
-
-  setStatus("Agenda wordt geladen…","neutral");
-
-  // A full iCalendar URL is the most reliable client-side input.
-  // For a bare token/id, try the Somtoday stream pattern described in the API docs.
-  let url=raw;
-  if(!/^https?:\/\//i.test(raw)){
-    url=`https://api.somtoday.nl/rest/v1/icalendar/stream/${encodeURIComponent(raw)}`;
-  }
-
+async function loadRoster(){
+  const url=$("icalUrl").value.trim();
+  if(!url){showStatus("Vul de iCalendar-token/URL in.","error");return}
+  showStatus("Rooster wordt opgehaald…");
   try{
-    const response=await fetch(url,{mode:"cors"});
-    if(!response.ok) throw new Error(`HTTP ${response.status}`);
-    const text=await response.text();
+    const res=await fetch(url,{mode:"cors",cache:"no-store"});
+    if(!res.ok)throw new Error(`HTTP ${res.status}`);
+    const text=await res.text();
     const events=parseICS(text);
-    state.events=events;
-    state.loaded=true;
-    state.weekOffset=0;
-    renderCalendar();
-    setStatus(`${events.length} afspraken geladen. Alleen in deze browser verwerkt.`,"ok");
-  }catch(error){
-    state.events=demoEvents;
-    renderCalendar();
-    setStatus("Directe agenda-fetch is door CORS/netwerk geblokkeerd. Gebruik hieronder een .ics-bestand.","error");
+    state.roster=events;state.rosterSource="LIVE";
+    renderCalendar();showStatus(`${events.length} roosterafspraken geladen.`,"ok");
+  }catch(err){
+    showStatus("Direct ophalen werd door CORS/netwerk geblokkeerd. Open je .ics-bestand in plaats daarvan.","error");
   }
 }
 
-function loadFile(file){
-  if(!file) return;
-  const reader=new FileReader();
-  reader.onload=()=>{
+function loadICSFile(file){
+  if(!file)return;
+  const r=new FileReader();
+  r.onload=()=>{
     try{
-      const events=parseICS(reader.result);
-      state.events=events;
-      state.loaded=true;
-      renderCalendar();
-      setStatus(`${events.length} afspraken uit .ics geladen. Geen opslag gebruikt.`,"ok");
-    }catch(e){
-      setStatus("Dit .ics-bestand kon niet worden gelezen.","error");
-    }
+      const events=parseICS(r.result);
+      state.roster=events;state.rosterSource="ICS";
+      renderCalendar();showStatus(`${events.length} roosterafspraken uit .ics geladen.`,"ok");
+    }catch(e){showStatus("Het .ics-bestand kon niet worden gelezen.","error")}
   };
-  reader.readAsText(file);
+  r.readAsText(file);
 }
 
-function openSettings(){
-  $("settingsDialog").showModal();
-}
+function openDialog(id){$(id).showModal()}
 
-function applySettings(){
-  const name=($("nameInput").value.trim()||"Jouw Naam");
-  $("profileName").textContent=name;
-  document.querySelector(".hero h1 span").textContent=name;
-  document.querySelector(".user-chip span:not(.avatar)").textContent=name;
-  const accent=$("accentInput").value;
-  document.body.classList.remove("accent-cyan","accent-pink","accent-green");
-  if(accent!=="violet") document.body.classList.add(`accent-${accent}`);
+function resetGradeForm(){
+  $("gradeSubject").value="";$("gradeValue").value="";$("gradeDate").value=isoDate(new Date());$("gradeType").value="Toets";
+}
+function resetTaskForm(){
+  $("taskTitle").value="";$("taskSubject").value="";$("taskDate").value=isoDate(new Date());$("taskTime").value="16:00";$("taskPriority").value="Normaal";
+}
+function resetTestForm(){
+  $("testTitle").value="";$("testDate").value=isoDate(new Date());$("testTime").value="09:00";$("testLocation").value="";
 }
 
 document.addEventListener("DOMContentLoaded",()=>{
-  renderClock();
-  renderGrades();
-  state.events=demoEvents;
-  renderCalendar();
-  setInterval(renderClock,1000);
+  state.roster=demoRoster;
 
-  $("loadAgenda").addEventListener("click",loadAgenda);
-  $("icsFile").addEventListener("change",e=>loadFile(e.target.files[0]));
+  renderAll();
+  setTodayFields();
+  setInterval(setTodayFields,1000);
+
+  $("loadRoster").addEventListener("click",loadRoster);
+  $("icsFile").addEventListener("change",e=>loadICSFile(e.target.files[0]));
+  $("refreshRoster").addEventListener("click",loadRoster);
   $("prevWeek").addEventListener("click",()=>{state.weekOffset--;renderCalendar()});
   $("nextWeek").addEventListener("click",()=>{state.weekOffset++;renderCalendar()});
-  $("settingsBtn").addEventListener("click",openSettings);
-  $("applySettings").addEventListener("click",e=>{e.preventDefault();applySettings();$("settingsDialog").close()});
 
-  $("mobileMenu").addEventListener("click",()=>document.querySelector(".sidebar").classList.toggle("open"));
-
-  document.querySelectorAll(".nav-item,.link-btn").forEach(btn=>{
-    btn.addEventListener("click",()=>{
-      const section=btn.dataset.section;
-      if(!section) return;
-      document.querySelectorAll(".nav-item").forEach(x=>x.classList.toggle("active",x.dataset.section===section));
-      const target=document.getElementById(section==="home"?"homeSection":`${section}Panel`);
-      if(target) target.scrollIntoView({behavior:"smooth",block:"start"});
-      document.querySelector(".sidebar").classList.remove("open");
-    });
+  $("addGrade").addEventListener("click",()=>{resetGradeForm();openDialog("gradeDialog")});
+  $("saveGrade").addEventListener("click",e=>{
+    e.preventDefault();
+    const subject=$("gradeSubject").value.trim(),value=Number($("gradeValue").value),date=$("gradeDate").value,type=$("gradeType").value;
+    if(!subject||!Number.isFinite(value)||!date)return;
+    state.grades.push({subject,value,date,type});$("gradeDialog").close();renderGrades();renderStats();
   });
 
-  $("globalSearch").addEventListener("input",e=>{
+  $("addTask").addEventListener("click",()=>{resetTaskForm();openDialog("taskDialog")});
+  $("saveTask").addEventListener("click",e=>{
+    e.preventDefault();
+    const title=$("taskTitle").value.trim(),subject=$("taskSubject").value.trim(),date=$("taskDate").value,start=$("taskTime").value,priority=$("taskPriority").value;
+    if(!title||!date)return;
+    state.tasks.push({title,subject,date,start,priority,done:false});$("taskDialog").close();renderTasks();renderCalendar();
+  });
+
+  $("addTest").addEventListener("click",()=>{resetTestForm();openDialog("testDialog")});
+  $("saveTest").addEventListener("click",e=>{
+    e.preventDefault();
+    const title=$("testTitle").value.trim(),date=$("testDate").value,start=$("testTime").value,location=$("testLocation").value.trim();
+    if(!title||!date)return;
+    state.tests.push({title,date,start,end:start,location});$("testDialog").close();renderTests();renderCalendar();
+  });
+
+  $("settingsOpen").addEventListener("click",()=>openDialog("settingsDialog"));
+  $("profileOpen").addEventListener("click",()=>openDialog("settingsDialog"));
+  $("saveSettings").addEventListener("click",e=>{
+    e.preventDefault();
+    const name=$("nameInput").value.trim()||"Jouw Naam",accent=$("accentInput").value;
+    $("nameDisplay").textContent=name;$("nameTop").textContent=name;$("heroName").textContent=name;
+    const initials=name.split(/\s+/).filter(Boolean).map(x=>x[0]).join("").slice(0,2).toUpperCase()||"JD";
+    $("avatar").textContent=initials;$("avatarTiny").textContent=initials;
+    document.body.classList.remove("accent-cyan","accent-pink","accent-green");
+    if(accent!=="violet")document.body.classList.add(`accent-${accent}`);
+    $("settingsDialog").close();
+  });
+
+  $("aboutButton").addEventListener("click",()=>openDialog("aboutDialog"));
+  $("mobileMenu").addEventListener("click",()=>$("sidebar").classList.toggle("open"));
+
+  document.querySelectorAll(".nav").forEach(btn=>btn.addEventListener("click",()=>{
+    document.querySelectorAll(".nav").forEach(x=>x.classList.remove("active"));
+    btn.classList.add("active");
+    const el=$(btn.dataset.target);
+    if(el)el.scrollIntoView({behavior:"smooth",block:"start"});
+    $("sidebar").classList.remove("open");
+  }));
+
+  $("searchInput").addEventListener("input",e=>{
     const q=e.target.value.trim().toLowerCase();
-    document.querySelectorAll(".task-row,.message-row,.grade-row,.news-card,.event").forEach(el=>{
-      el.style.display=!q || el.textContent.toLowerCase().includes(q) ? "" : "none";
+    document.querySelectorAll(".grade-row,.task-row,.test-row,.message-row,.event").forEach(el=>{
+      el.style.display=!q||el.textContent.toLowerCase().includes(q)?"":"none";
     });
   });
 });
