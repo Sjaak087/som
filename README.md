@@ -1,59 +1,23 @@
-# Aurora Student Dashboard + Firebase
+# Aurora Student Dashboard — Firebase FIXED
 
-Deze GitHub Pages-site gebruikt Firebase Authentication + Realtime Database.
+Deze versie is gericht op de twee problemen:
+1. Firebase start automatisch met **Anonymous Authentication**.
+2. iCalendar tijden worden timezone-bewust geparsed.
 
-## Wat wordt opgeslagen
+## ÉÉN verplichte Firebase instelling
 
-Per Firebase-gebruiker, onder `users/<uid>/`:
+Ga naar:
 
-```text
-profile/
-  name
-  accent
+**Firebase Console → Authentication → Sign-in method → Anonymous → Enable**
 
-connection/
-  calendarId
-  calendarUrl
-  lastSync
+Firebase Authentication ondersteunt anonieme accounts; het account krijgt een
+UID, waardoor de database onder `users/<uid>/` kan worden opgeslagen.
 
-rosterCache/
-  [roosterafspraken]
+Daarna kan de site zonder loginformulier meteen starten.
 
-grades/
-  [eigen cijfers]
+## Realtime Database Rules
 
-tasks/
-  [eigen taken]
-
-tests/
-  [eigen toetsen]
-```
-
-Dus ook de **agenda-ID/URL**, rooster-cache, naam, accentkleur, cijfers, taken en
-toetsen worden opgeslagen.
-
-## Somtoday: alleen rooster
-
-De Somtoday-koppeling wordt alleen gebruikt voor de iCalendar-roosterfeed.
-De site haalt geen Somtoday-wachtwoord, Somtoday-cijfers, Somtoday-taken of
-Somtoday-berichten op.
-
-De app accepteert:
-- volledige iCalendar URL
-- losse agenda/token-ID, waarna de Somtoday iCalendar stream-vorm wordt geprobeerd
-- lokaal `.ics` bestand als de browser de live feed door CORS blokkeert
-
-## Firebase instellen
-
-### 1. Authentication
-
-Firebase Console → Authentication → Sign-in method → **Email/Password** → Enable.
-
-De website heeft daarmee een eigen login/account per gebruiker.
-
-### 2. Realtime Database rules
-
-Gebruik de regels uit `database.rules.json`:
+Gebruik de meegeleverde `database.rules.json`:
 
 ```json
 {
@@ -61,76 +25,85 @@ Gebruik de regels uit `database.rules.json`:
     "users": {
       "$uid": {
         ".read": "auth != null && auth.uid === $uid",
-        ".write": "auth != null && auth.uid === $uid"
+        ".write": "auth != null && auth.uid === $uid",
+        ".validate": "newData.hasChildren() || newData.val() == null"
       }
     }
   }
 }
 ```
 
-Hiermee kan een gebruiker alleen zijn eigen `users/<uid>` node lezen/schrijven.
+## Wat wordt opgeslagen
 
-### 3. GitHub Pages
-
-Upload `index.html`, `styles.css`, `app.js`, `firebase.json` en
-`database.rules.json` naar een GitHub repository.
-
-Voor GitHub Pages heb je geen eigen server nodig. De site is static.
-
-### 4. Firebase rules deployen
-
-Met Firebase CLI:
-
-```bash
-firebase login
-firebase use somtoday-auto-planner
-firebase deploy --only database
+```text
+users/<uid>/
+  profile/
+  connection/
+    calendarId
+    calendarUrl
+    lastSync
+  rosterCache/
+  grades/
+  tasks/
+  tests/
+  preferences/
+    weekOffset
 ```
 
-Je kunt de regels ook direct in Firebase Console → Realtime Database → Rules
-plakken.
+Daarmee blijven agenda-ID/URL, rooster-cache, cijfers, taken, toetsen, naam,
+accent en de laatste week gekoppeld aan dezelfde Firebase-user.
 
-## Opslaggedrag
+## Tijden FIXED
 
-De dashboarddata wordt niet in `localStorage` bewaard. Wijzigingen worden
-direct naar Firebase Realtime Database geschreven.
+De parser ondersteunt:
+- `DTSTART;TZID=Europe/Amsterdam:20260928T083000`
+- `DTEND;TZID=Europe/Amsterdam:20260928T092000`
+- `DTSTART:20260928T083000`
+- `DTSTART:20260928T083000Z`
+- `VALUE=DATE`/hele-dag afspraken
+- `X-WR-TIMEZONE` uit het kalenderbestand
 
-De rooster-cache wordt ook opgeslagen, zodat de laatste ingeladen afspraken
-na opnieuw inloggen beschikbaar zijn. De live Somtoday-feed kan daarna opnieuw
-worden verversd.
+Voor Nederland wordt de timezone `Europe/Amsterdam` gebruikt als een event geen
+TZID bevat. UTC-events met `Z` worden als UTC geïnterpreteerd en daarna correct
+naar Nederland omgezet.
 
-## CORS
+## Live rooster
 
-Browsers kunnen een iCalendar feed blokkeren wanneer de server geen passende
-CORS headers teruggeeft. Daarom zit er een `.ics` import in.
+De ingevoerde waarde kan:
+- een volledige iCalendar URL zijn
+- een losse Somtoday iCalendar stream-token/ID zijn
+
+Bij een losse ID gebruikt de app:
+
+`https://api.somtoday.nl/rest/v1/icalendar/stream/<ID>`
+
+Wanneer de browser de live feed door CORS niet mag ophalen, kun je met `.ics
+openen` het agenda-bestand lokaal laden.
+
+## GitHub Pages
+
+Upload deze bestanden:
+
+- `index.html`
+- `styles.css`
+- `app.js`
+- `database.rules.json`
+- `firebase.json`
+
+De site heeft geen eigen server nodig.
 
 ## Firebase config
 
-De ingevulde Firebase Web App-config staat in `app.js`, zoals je hem hierboven
-hebt aangeleverd.
+De Firebase webconfig die je hebt gegeven zit al in `app.js`.
+Er staat bewust geen service-account/private key in de client.
 
-## Onafhankelijk
+## Privacy/veiligheid
 
-Deze UI is een zelfstandige dashboard-implementatie en is niet een officiële
-Somtoday-app.
+De database rules beperken iedere gebruiker tot zijn eigen UID-node.
+Gebruik geen publieke `".read": true` / `".write": true` regels voor de echte site.
 
-## Firebase-config
+## Belangrijk
 
-De meegeleverde `app.js` bevat jouw Firebase Web App-config. Een Firebase web
-API-key is client-side configuration; de echte toegangsbeveiliging voor de
-Realtime Database hoort in Authentication + Security Rules te zitten.
-
-## Wat exact blijft staan
-
-Onder jouw eigen UID wordt bewaard:
-- profielnaam + accent
-- agenda-ID
-- agenda-URL
-- laatste sync-tijd
-- laatste rooster-cache
-- alle zelf ingevoerde cijfers
-- alle zelf ingevoerde taken inclusief afvinkstatus
-- alle zelf ingevoerde toetsen
-- laatst bekeken week
-
-Er wordt geen server-side opslag buiten Firebase gebruikt.
+Dit project is een onafhankelijke dashboardinterface. Het haalt alleen de
+iCalendar-roosterfeed op en gebruikt geen Somtoday-wachtwoord of andere
+Somtoday-accountgegevens.
