@@ -1,76 +1,136 @@
-# Aurora Student Dashboard v2
+# Aurora Student Dashboard + Firebase
 
-GitHub-ready, static dashboard geïnspireerd op de aangeleverde preview.
+Deze GitHub Pages-site gebruikt Firebase Authentication + Realtime Database.
 
-## Wat deze versie doet
+## Wat wordt opgeslagen
 
-### 1. Somtoday → alleen rooster
-De import accepteert een volledige iCalendar-token/URL uit Somtoday of een `.ics`
-bestand.
+Per Firebase-gebruiker, onder `users/<uid>/`:
 
-De site leest uitsluitend `VEVENT` agenda-items uit de feed. Cijfers, taken,
-toetsen en berichten worden niet uit de Somtoday-feed gehaald.
+```text
+profile/
+  name
+  accent
 
-Somtoday beschrijft dat de iCalendar-koppeling alleen roosterafspraken
-synchroniseert. Huiswerk en toetsen uit Somtoday worden niet meegenomen in die
-externe agenda-koppeling.
+connection/
+  calendarId
+  calendarUrl
+  lastSync
 
-### 2. Zelf cijfers invoeren
-Met **+ Cijfer** kun je vak, cijfer, datum en type invoeren.
+rosterCache/
+  [roosterafspraken]
 
-Het dashboard toont:
-- gemiddelde
-- aantal cijfers
-- per cijfer een status "Goed" of "Aandacht"
-- laatste cijfers
+grades/
+  [eigen cijfers]
 
-### 3. Zelf taken plannen
-Met **+ Taak** kun je titel, vak, datum, tijd en prioriteit instellen.
-Taken verschijnen:
-- in het takenpaneel
-- op de agenda
-- in de dagteller
+tasks/
+  [eigen taken]
 
-Taken kunnen worden afgevinkt.
+tests/
+  [eigen toetsen]
+```
 
-### 4. Zelf toetsen plannen
-Met **+ Toets** kun je vak/titel, datum, tijd en lokaal instellen.
-Toetsen verschijnen:
-- in het toets-paneel
-- als volgende toets
-- in de agenda
+Dus ook de **agenda-ID/URL**, rooster-cache, naam, accentkleur, cijfers, taken en
+toetsen worden opgeslagen.
 
-### 5. Geen backend / geen database
-Alles is een gewone GitHub Pages-site:
-- geen server
-- geen database
-- geen API-server
-- geen localStorage
-- geen cookies voor opslag
+## Somtoday: alleen rooster
 
-De handmatig ingevoerde cijfers/taken/toetsen bestaan alleen zolang de pagina
-open blijft. Na Ctrl+F5 zijn ze weer weg.
+De Somtoday-koppeling wordt alleen gebruikt voor de iCalendar-roosterfeed.
+De site haalt geen Somtoday-wachtwoord, Somtoday-cijfers, Somtoday-taken of
+Somtoday-berichten op.
 
-## GitHub Pages
+De app accepteert:
+- volledige iCalendar URL
+- losse agenda/token-ID, waarna de Somtoday iCalendar stream-vorm wordt geprobeerd
+- lokaal `.ics` bestand als de browser de live feed door CORS blokkeert
 
-Upload deze bestanden naar de root van een GitHub repository:
+## Firebase instellen
 
-- `index.html`
-- `styles.css`
-- `app.js`
-- `.github/workflows/pages.yml`
+### 1. Authentication
 
-Ga daarna naar **Settings → Pages** en activeer GitHub Pages.
+Firebase Console → Authentication → Sign-in method → **Email/Password** → Enable.
+
+De website heeft daarmee een eigen login/account per gebruiker.
+
+### 2. Realtime Database rules
+
+Gebruik de regels uit `database.rules.json`:
+
+```json
+{
+  "rules": {
+    "users": {
+      "$uid": {
+        ".read": "auth != null && auth.uid === $uid",
+        ".write": "auth != null && auth.uid === $uid"
+      }
+    }
+  }
+}
+```
+
+Hiermee kan een gebruiker alleen zijn eigen `users/<uid>` node lezen/schrijven.
+
+### 3. GitHub Pages
+
+Upload `index.html`, `styles.css`, `app.js`, `firebase.json` en
+`database.rules.json` naar een GitHub repository.
+
+Voor GitHub Pages heb je geen eigen server nodig. De site is static.
+
+### 4. Firebase rules deployen
+
+Met Firebase CLI:
+
+```bash
+firebase login
+firebase use somtoday-auto-planner
+firebase deploy --only database
+```
+
+Je kunt de regels ook direct in Firebase Console → Realtime Database → Rules
+plakken.
+
+## Opslaggedrag
+
+De dashboarddata wordt niet in `localStorage` bewaard. Wijzigingen worden
+direct naar Firebase Realtime Database geschreven.
+
+De rooster-cache wordt ook opgeslagen, zodat de laatste ingeladen afspraken
+na opnieuw inloggen beschikbaar zijn. De live Somtoday-feed kan daarna opnieuw
+worden verversd.
 
 ## CORS
 
-Een browser kan een iCalendar URL blokkeren wanneer die server geen CORS-header
-voor browser requests terugstuurt. Dat is een beveiligingsmechanisme van de
-browser en niet iets dat met CSS/HTML kan worden omzeild.
+Browsers kunnen een iCalendar feed blokkeren wanneer de server geen passende
+CORS headers teruggeeft. Daarom zit er een `.ics` import in.
 
-Gebruik dan de `.ics openen` knop.
+## Firebase config
 
-## Onafhankelijk project
+De ingevulde Firebase Web App-config staat in `app.js`, zoals je hem hierboven
+hebt aangeleverd.
 
-Deze interface is een zelfstandige dashboard-implementatie en is niet verbonden
-aan of gesponsord door Somtoday/Topicus.
+## Onafhankelijk
+
+Deze UI is een zelfstandige dashboard-implementatie en is niet een officiële
+Somtoday-app.
+
+## Firebase-config
+
+De meegeleverde `app.js` bevat jouw Firebase Web App-config. Een Firebase web
+API-key is client-side configuration; de echte toegangsbeveiliging voor de
+Realtime Database hoort in Authentication + Security Rules te zitten.
+
+## Wat exact blijft staan
+
+Onder jouw eigen UID wordt bewaard:
+- profielnaam + accent
+- agenda-ID
+- agenda-URL
+- laatste sync-tijd
+- laatste rooster-cache
+- alle zelf ingevoerde cijfers
+- alle zelf ingevoerde taken inclusief afvinkstatus
+- alle zelf ingevoerde toetsen
+- laatst bekeken week
+
+Er wordt geen server-side opslag buiten Firebase gebruikt.

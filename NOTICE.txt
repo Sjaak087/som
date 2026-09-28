@@ -1,2 +1,1 @@
-This project is an independent static dashboard implementation.
-It is not affiliated with, endorsed by, or sponsored by Somtoday/Topicus.
+Independent dashboard implementation; not affiliated with Somtoday/Topicus.
